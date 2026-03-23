@@ -206,34 +206,43 @@
      * Read the current DOM value for a given field
      * -------------------------------------------------------------------- */
     function getFieldValue( formId, fieldId ) {
-        var prefix = '#input_' + formId + '_' + fieldId;
+        var container = '#field_' + formId + '_' + fieldId;
 
-        // Try a direct input (text, textarea, email, phone, number, website, date, time)
-        var $input = $( prefix );
-        if ( $input.length ) {
-            return $input.val() || '';
-        }
-
-        // Select field — GF wraps selects inside the field container
-        var $select = $( '#field_' + formId + '_' + fieldId + ' select' );
-        if ( $select.length ) {
-            return $select.val() || '';
-        }
-
-        // Radio buttons
-        var $radio = $( 'input[name="input_' + fieldId + '"]:checked' );
+        // Radio buttons — check before the generic input lookup because
+        // GF 2.5+ wraps radios in a <div id="input_{formId}_{fieldId}">
+        // which would match the generic selector but return undefined from .val().
+        var $radio = $( container + ' input[type="radio"]:checked' );
         if ( $radio.length ) {
             return $radio.val() || '';
         }
+        // If radios exist but none is checked, return empty.
+        if ( $( container + ' input[type="radio"]' ).length ) {
+            return '';
+        }
 
         // Checkboxes — return array of checked values
-        var $checks = $( '#field_' + formId + '_' + fieldId + ' input[type="checkbox"]:checked' );
+        var $checks = $( container + ' input[type="checkbox"]:checked' );
         if ( $checks.length ) {
             var vals = [];
             $checks.each( function() {
                 vals.push( $( this ).val() );
             } );
             return vals;
+        }
+        if ( $( container + ' input[type="checkbox"]' ).length ) {
+            return [];
+        }
+
+        // Select field
+        var $select = $( container + ' select' );
+        if ( $select.length ) {
+            return $select.val() || '';
+        }
+
+        // Direct input (text, textarea, email, phone, number, website, date, time)
+        var $input = $( '#input_' + formId + '_' + fieldId );
+        if ( $input.is( 'input, textarea' ) ) {
+            return $input.val() || '';
         }
 
         return '';
