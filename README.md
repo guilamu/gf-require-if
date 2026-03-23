@@ -2,6 +2,8 @@
 
 Make the required state of supported Gravity Forms fields conditional — based on form field values, user roles, URL parameters, and more.
 
+![Plugin Screenshot](https://github.com/guilamu/gf-require-if/blob/main/screenshot.png)
+
 ## Conditional Required Rules
 
 - Set fields as required only when specific form field values match
