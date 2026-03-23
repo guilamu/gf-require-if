@@ -1,0 +1,121 @@
+/**
+ * Gravity Forms Require If — Admin Styles (Form Editor).
+ *
+ * Minimal — the flyout, accordion, toggle, rules, and buttons piggyback
+ * on GF's native admin.min.css classes. Only Require If–specific elements
+ * need custom styles.
+ *
+ * @package GF_Require_If
+ */
+
+/* ------------------------------------------------------------------ */
+/* Sidebar setting stack — keep adjacent accordions visually merged    */
+/* ------------------------------------------------------------------ */
+
+.conditional_logic_wrapper {
+    position: relative;
+}
+
+.conditional_logic_wrapper + .conditional_logic_wrapper {
+    margin-top: -1px;
+}
+
+.conditional_logic_wrapper:has(.conditional_logic_accordion.active) {
+    z-index: 2;
+}
+
+.conditional_logic_wrapper:has(.conditional_logic_accordion.active:focus-within) {
+    z-index: 3;
+}
+
+#grfi_field_setting {
+    margin-bottom: 0;
+}
+
+#grfi_field_setting .conditional_logic_accordion {
+    margin-top: 0;
+}
+
+#grfi_field_setting + .conditional_logic_wrapper .conditional_logic_accordion:not(:focus-within) {
+    border-bottom-color: transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* Rules list inside flyout                                            */
+/* ------------------------------------------------------------------ */
+
+.grfi_flyout__rules {
+    margin: 12px 0 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Add-rule button                                                     */
+/* ------------------------------------------------------------------ */
+
+.grfi_flyout__add-rule {
+    margin-top: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Disabled state — hide main fieldset when logic is toggled off       */
+/* ------------------------------------------------------------------ */
+
+.grfi_flyout .conditional-flyout__main-fields:not(.active) {
+    display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Keep main fieldset within the flyout bounds                         */
+/* ------------------------------------------------------------------ */
+
+.grfi_flyout .conditional-flyout__main-fields {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Rule rows — all 4 selects + controls on a single line               */
+/* ------------------------------------------------------------------ */
+
+.grfi_flyout .grfi_rule {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.grfi_flyout .grfi_rule .gfield_rule_select,
+.grfi_flyout .grfi_rule .gfield_rule_input {
+    min-width: 0;
+    width: 0;
+    flex: 1 1 0;
+}
+
+.grfi_flyout .grfi_rule .conditional_logic_flyout__rule-controls {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    width: 3.75rem;
+}
+
+.grfi_flyout.conditional_logic_flyout .add_field_choice,
+.grfi_flyout.conditional_logic_flyout .delete_field_choice {
+    top: 0;
+}
+
+.grfi_flyout .add_field_choice {
+    margin-left: .625rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Rule controls (+/- buttons) — hide delete when inactive             */
+/* ------------------------------------------------------------------ */
+
+.grfi_flyout .delete_field_choice {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.grfi_flyout .delete_field_choice.active {
+    opacity: 1;
+    pointer-events: auto;
+}

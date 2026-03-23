@@ -1,0 +1,173 @@
+# Copyright (C) 2026 Guilamu
+# This file is distributed under the AGPL-3.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Gravity Forms Require If 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/guilamu/gravity-forms-require-if/issues\n"
+"POT-Creation-Date: 2026-06-09 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"X-Generator: manual\n"
+"X-Domain: gf-require-if\n"
+
+#: includes/class-grfi-field-settings.php
+msgid "Conditional Required"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Configure"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Active"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Inactive"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Enable"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Enabled"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Disabled"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Configure Conditional Required"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Make this field required when conditions match."
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "ALL"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "ANY"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Make required if"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "of the following match:"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "add another rule"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "remove this rule"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Enter a value"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "To use conditional required, first create fields that support conditional logic."
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Meta key"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Parameter name"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Condition key"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "\u2014 Select a field \u2014"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Form Field"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "User Logged In"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "User Role"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "User ID"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "User Meta"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Page / Post ID"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "URL Parameter"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Custom (Developer)"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "is"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "is not"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "greater than"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "less than"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "contains"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "starts with"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "ends with"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "Yes"
+msgstr ""
+
+#: includes/class-grfi-field-settings.php
+msgid "No"
+msgstr ""
+
+#: includes/class-github-updater.php
+msgid "Unable to rename the update folder. Please retry or update manually."
+msgstr ""

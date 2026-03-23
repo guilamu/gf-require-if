@@ -1,0 +1,13 @@
+/**
+ * Gravity Forms Require If — Frontend Styles
+ *
+ * Minimal — GF already handles required indicator styling via its own
+ * .gfield_required / .gfield_required_asterisk classes.  This file exists
+ * so the enqueue registration has a valid src and can be extended later.
+ */
+
+/* Injected asterisk inherits GF's native styling via the shared class names.
+   Add overrides here only if needed. */
+.gfield_required.grfi-injected {
+    /* inherits Gravity Forms defaults */
+}

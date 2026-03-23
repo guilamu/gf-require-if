@@ -1,0 +1,174 @@
+# Translation of Gravity Forms Require If in French (France).
+# Copyright (C) 2026 Guilamu
+# This file is distributed under the AGPL-3.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Gravity Forms Require If 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/guilamu/gravity-forms-require-if/issues\n"
+"POT-Creation-Date: 2026-06-09 00:00+0000\n"
+"PO-Revision-Date: 2026-06-09 00:00+0000\n"
+"Last-Translator: Guilamu\n"
+"Language-Team: French (France)\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: manual\n"
+"X-Domain: gf-require-if\n"
+
+#: includes/class-grfi-field-settings.php
+msgid "Conditional Required"
+msgstr "Requis conditionnel"
+
+#: includes/class-grfi-field-settings.php
+msgid "Configure"
+msgstr "Configurer"
+
+#: includes/class-grfi-field-settings.php
+msgid "Active"
+msgstr "Actif"
+
+#: includes/class-grfi-field-settings.php
+msgid "Inactive"
+msgstr "Inactif"
+
+#: includes/class-grfi-field-settings.php
+msgid "Enable"
+msgstr "Activer"
+
+#: includes/class-grfi-field-settings.php
+msgid "Enabled"
+msgstr "Activé"
+
+#: includes/class-grfi-field-settings.php
+msgid "Disabled"
+msgstr "Désactivé"
+
+#: includes/class-grfi-field-settings.php
+msgid "Configure Conditional Required"
+msgstr "Configurer le requis conditionnel"
+
+#: includes/class-grfi-field-settings.php
+msgid "Make this field required when conditions match."
+msgstr "Rendre ce champ obligatoire lorsque les conditions correspondent."
+
+#: includes/class-grfi-field-settings.php
+msgid "ALL"
+msgstr "TOUTES"
+
+#: includes/class-grfi-field-settings.php
+msgid "ANY"
+msgstr "L'UNE"
+
+#: includes/class-grfi-field-settings.php
+msgid "Make required if"
+msgstr "Rendre obligatoire si"
+
+#: includes/class-grfi-field-settings.php
+msgid "of the following match:"
+msgstr "des conditions suivantes correspondent :"
+
+#: includes/class-grfi-field-settings.php
+msgid "add another rule"
+msgstr "ajouter une autre règle"
+
+#: includes/class-grfi-field-settings.php
+msgid "remove this rule"
+msgstr "supprimer cette règle"
+
+#: includes/class-grfi-field-settings.php
+msgid "Enter a value"
+msgstr "Saisir une valeur"
+
+#: includes/class-grfi-field-settings.php
+msgid "To use conditional required, first create fields that support conditional logic."
+msgstr "Pour utiliser le requis conditionnel, créez d'abord des champs supportant la logique conditionnelle."
+
+#: includes/class-grfi-field-settings.php
+msgid "Meta key"
+msgstr "Clé meta"
+
+#: includes/class-grfi-field-settings.php
+msgid "Parameter name"
+msgstr "Nom du paramètre"
+
+#: includes/class-grfi-field-settings.php
+msgid "Condition key"
+msgstr "Clé de condition"
+
+#: includes/class-grfi-field-settings.php
+msgid "\u2014 Select a field \u2014"
+msgstr "\u2014 Sélectionner un champ \u2014"
+
+#: includes/class-grfi-field-settings.php
+msgid "Form Field"
+msgstr "Champ du formulaire"
+
+#: includes/class-grfi-field-settings.php
+msgid "User Logged In"
+msgstr "Utilisateur connecté"
+
+#: includes/class-grfi-field-settings.php
+msgid "User Role"
+msgstr "Rôle utilisateur"
+
+#: includes/class-grfi-field-settings.php
+msgid "User ID"
+msgstr "ID utilisateur"
+
+#: includes/class-grfi-field-settings.php
+msgid "User Meta"
+msgstr "Meta utilisateur"
+
+#: includes/class-grfi-field-settings.php
+msgid "Page / Post ID"
+msgstr "ID de page / article"
+
+#: includes/class-grfi-field-settings.php
+msgid "URL Parameter"
+msgstr "Paramètre d'URL"
+
+#: includes/class-grfi-field-settings.php
+msgid "Custom (Developer)"
+msgstr "Personnalisé (développeur)"
+
+#: includes/class-grfi-field-settings.php
+msgid "is"
+msgstr "est"
+
+#: includes/class-grfi-field-settings.php
+msgid "is not"
+msgstr "n'est pas"
+
+#: includes/class-grfi-field-settings.php
+msgid "greater than"
+msgstr "supérieur à"
+
+#: includes/class-grfi-field-settings.php
+msgid "less than"
+msgstr "inférieur à"
+
+#: includes/class-grfi-field-settings.php
+msgid "contains"
+msgstr "contient"
+
+#: includes/class-grfi-field-settings.php
+msgid "starts with"
+msgstr "commence par"
+
+#: includes/class-grfi-field-settings.php
+msgid "ends with"
+msgstr "se termine par"
+
+#: includes/class-grfi-field-settings.php
+msgid "Yes"
+msgstr "Oui"
+
+#: includes/class-grfi-field-settings.php
+msgid "No"
+msgstr "Non"
+
+#: includes/class-github-updater.php
+msgid "Unable to rename the update folder. Please retry or update manually."
+msgstr "Impossible de renommer le dossier de mise à jour. Veuillez réessayer ou mettre à jour manuellement."
