@@ -120,8 +120,9 @@ class GF_Require_If extends GFAddOn {
     // -------------------------------------------------------------------------
 
     /** Collected per-form configs to output in wp_footer. */
-    private $frontend_forms   = array();
-    private $frontend_context = null;
+    private $frontend_forms      = array();
+    private $frontend_context    = null;
+    private $frontend_indicators = array();
 
     public function inject_wp_conditions_payload( $form ) {
         $configs = $this->get_form_require_if_configs( $form );
@@ -133,9 +134,6 @@ class GF_Require_If extends GFAddOn {
         $this->frontend_forms[ $form_id ] = $configs;
 
         // Store the required indicator HTML for this form.
-        if ( ! isset( $this->frontend_indicators ) ) {
-            $this->frontend_indicators = array();
-        }
         if ( method_exists( 'GFFormsModel', 'get_required_indicator' ) ) {
             $this->frontend_indicators[ $form_id ] = GFFormsModel::get_required_indicator( $form_id );
         } else {
@@ -203,7 +201,7 @@ class GF_Require_If extends GFAddOn {
 
         $payload_forms      = wp_json_encode( $this->frontend_forms );
         $payload_context    = wp_json_encode( $this->frontend_context );
-        $payload_indicators = wp_json_encode( isset( $this->frontend_indicators ) ? $this->frontend_indicators : new stdClass() );
+        $payload_indicators = wp_json_encode( ! empty( $this->frontend_indicators ) ? $this->frontend_indicators : new stdClass() );
 
         echo '<script>'
             . 'window.grfiData = window.grfiData || { forms: {}, wp_context: {}, indicators: {} };'
