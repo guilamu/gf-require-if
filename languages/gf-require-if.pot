@@ -2,7 +2,7 @@
 # This file is distributed under the AGPL-3.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Gravity Forms Require If 1.0.0\n"
+"Project-Id-Version: Gravity Forms Require If 1.0.1\n"
 "Report-Msgid-Bugs-To: https://github.com/guilamu/gravity-forms-require-if/issues\n"
 "POT-Creation-Date: 2026-06-09 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"

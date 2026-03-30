@@ -114,6 +114,11 @@ Yes. The frontend script initializes via multiple fallback methods (GF action ho
 
 ## Changelog
 
+### 1.0.1
+- GitHub updater rewritten to use Parsedown for README.md parsing
+- Added "View details" thickbox link to plugin row meta
+- Added Gravity Forms version requirement to plugin info sidebar
+
 ### 1.0.0
 - Initial release
 - Conditional required rules with AND/OR logic

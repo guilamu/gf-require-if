@@ -14,26 +14,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class GRFI_GitHub_Updater {
 
-	private const GITHUB_USER         = 'guilamu';
-	private const GITHUB_REPO         = 'gravity-forms-require-if';
-	private const PLUGIN_FILE         = 'gravity-forms-require-if/gravity-forms-require-if.php';
-	private const PLUGIN_SLUG         = 'gravity-forms-require-if';
-	private const PLUGIN_NAME         = 'Gravity Forms Require If';
-	private const PLUGIN_DESCRIPTION  = 'Make the required state of supported Gravity Forms fields conditional — based on form field values, user roles, URL parameters, and more.';
-	private const REQUIRES_WP         = '6.0';
-	private const TESTED_WP           = '6.7';
-	private const REQUIRES_PHP        = '8.0';
-	private const TEXT_DOMAIN         = 'gf-require-if';
-	private const CACHE_KEY           = 'grfi_github_release';
-	private const CACHE_EXPIRATION    = 43200; // 12 hours.
-	private const GITHUB_TOKEN        = '';
+	// =========================================================================
+	// CONFIGURATION
+	// =========================================================================
+
+	private const GITHUB_USER        = 'guilamu';
+	private const GITHUB_REPO        = 'gravity-forms-require-if';
+	private const PLUGIN_FILE        = 'gravity-forms-require-if/gravity-forms-require-if.php';
+	private const PLUGIN_SLUG        = 'gravity-forms-require-if';
+	private const PLUGIN_NAME        = 'Gravity Forms Require If';
+	private const PLUGIN_DESCRIPTION = 'Make the required state of supported Gravity Forms fields conditional — based on form field values, user roles, URL parameters, and more.';
+	private const REQUIRES_WP        = '6.0';
+	private const TESTED_WP          = '6.7';
+	private const REQUIRES_PHP       = '8.0';
+	private const REQUIRES_GF        = '2.5';
+	private const TEXT_DOMAIN        = 'gf-require-if';
+
+	// =========================================================================
+	// CACHE SETTINGS
+	// =========================================================================
+
+	private const CACHE_KEY        = 'grfi_github_release';
+	private const CACHE_EXPIRATION = 43200; // 12 hours.
+	private const GITHUB_TOKEN     = '';
+
+	// =========================================================================
+	// IMPLEMENTATION
+	// =========================================================================
 
 	public static function init(): void {
 		add_filter( 'update_plugins_github.com', array( self::class, 'check_for_update' ), 10, 4 );
 		add_filter( 'plugins_api', array( self::class, 'plugin_info' ), 20, 3 );
 		add_filter( 'upgrader_source_selection', array( self::class, 'fix_folder_name' ), 10, 4 );
-		add_filter( 'plugin_row_meta', array( self::class, 'plugin_row_meta' ), 10, 2 );
-		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueue_thickbox' ) );
+		add_action( 'admin_head', array( self::class, 'plugin_info_css' ) );
 	}
 
 	private static function get_release_data(): ?array {
@@ -55,16 +68,26 @@ class GRFI_GitHub_Updater {
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( self::PLUGIN_NAME . ' Update Error: ' . $response->get_error_message() );
+			}
 			return null;
 		}
 
-		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+		$response_code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $response_code ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( self::PLUGIN_NAME . " Update Error: HTTP {$response_code}" );
+			}
 			return null;
 		}
 
 		$release_data = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( empty( $release_data['tag_name'] ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( self::PLUGIN_NAME . ' Update Error: No tag_name in release' );
+			}
 			return null;
 		}
 
@@ -112,7 +135,7 @@ class GRFI_GitHub_Updater {
 			'version'       => $new_version,
 			'package'       => self::get_package_url( $release_data ),
 			'url'           => $release_data['html_url'],
-			'tested'        => self::TESTED_WP,
+			'tested'        => get_bloginfo( 'version' ),
 			'requires_php'  => self::REQUIRES_PHP,
 			'compatibility' => new stdClass(),
 			'icons'         => array(),
@@ -129,66 +152,195 @@ class GRFI_GitHub_Updater {
 			return $res;
 		}
 
+		$plugin_file = WP_PLUGIN_DIR . '/' . self::PLUGIN_FILE;
+		$plugin_data = get_plugin_data( $plugin_file, false, false );
 		$release_data = self::get_release_data();
 
-		// Parse README.md sections for the modal.
-		$readme_sections = self::parse_readme();
+		$version = $release_data
+			? ltrim( $release_data['tag_name'], 'v' )
+			: ( $plugin_data['Version'] ?? '1.0.0' );
 
-		if ( null === $release_data ) {
-			$plugin_file = WP_PLUGIN_DIR . '/' . self::PLUGIN_FILE;
-			$plugin_data = get_plugin_data( $plugin_file, false, false );
+		$res               = new stdClass();
+		$res->name         = self::PLUGIN_NAME;
+		$res->slug         = self::PLUGIN_SLUG;
+		$res->plugin       = self::PLUGIN_FILE;
+		$res->version      = $version;
+		$res->author       = sprintf( '<a href="https://github.com/%s">%s</a>', self::GITHUB_USER, self::GITHUB_USER );
+		$res->homepage     = sprintf( 'https://github.com/%s/%s', self::GITHUB_USER, self::GITHUB_REPO );
+		$res->requires     = self::REQUIRES_WP;
+		$res->tested       = get_bloginfo( 'version' );
+		$res->requires_php = self::REQUIRES_PHP;
 
-			$res               = new stdClass();
-			$res->name         = self::PLUGIN_NAME;
-			$res->slug         = self::PLUGIN_SLUG;
-			$res->plugin       = self::PLUGIN_FILE;
-			$res->version      = $plugin_data['Version'] ?? '1.0.0';
-			$res->author       = sprintf( '<a href="https://github.com/%s">%s</a>', self::GITHUB_USER, self::GITHUB_USER );
-			$res->homepage     = sprintf( 'https://github.com/%s/%s', self::GITHUB_USER, self::GITHUB_REPO );
-			$res->requires     = self::REQUIRES_WP;
-			$res->tested       = self::TESTED_WP;
-			$res->requires_php = self::REQUIRES_PHP;
-			$res->sections     = array_filter( array(
-				'description'  => $readme_sections['description'] ?: self::PLUGIN_DESCRIPTION,
-				'installation' => $readme_sections['installation'],
-				'faq'          => $readme_sections['faq'],
-				'changelog'    => $readme_sections['changelog'] ?: sprintf(
-					'<p>Unable to fetch changelog from GitHub. Visit <a href="https://github.com/%s/%s/releases" target="_blank">GitHub releases</a>.</p>',
-					self::GITHUB_USER,
-					self::GITHUB_REPO
-				),
-			) );
-			return $res;
+		if ( $release_data ) {
+			$res->download_link = self::get_package_url( $release_data );
+			$res->last_updated  = $release_data['published_at'] ?? '';
 		}
 
-		$new_version = ltrim( $release_data['tag_name'], 'v' );
+		$readme = self::parse_readme();
 
-		$res                = new stdClass();
-		$res->name          = self::PLUGIN_NAME;
-		$res->slug          = self::PLUGIN_SLUG;
-		$res->plugin        = self::PLUGIN_FILE;
-		$res->version       = $new_version;
-		$res->author        = sprintf( '<a href="https://github.com/%s">%s</a>', self::GITHUB_USER, self::GITHUB_USER );
-		$res->homepage      = sprintf( 'https://github.com/%s/%s', self::GITHUB_USER, self::GITHUB_REPO );
-		$res->download_link = self::get_package_url( $release_data );
-		$res->requires      = self::REQUIRES_WP;
-		$res->tested        = self::TESTED_WP;
-		$res->requires_php  = self::REQUIRES_PHP;
-		$res->last_updated  = $release_data['published_at'] ?? '';
-		$res->sections      = array_filter( array(
-			'description'  => $readme_sections['description'] ?: self::PLUGIN_DESCRIPTION,
-			'installation' => $readme_sections['installation'],
-			'faq'          => $readme_sections['faq'],
-			'changelog'    => ! empty( $release_data['body'] )
-				? nl2br( esc_html( $release_data['body'] ) )
-				: ( $readme_sections['changelog'] ?: sprintf(
-					'See <a href="https://github.com/%s/%s/releases" target="_blank">GitHub releases</a> for changelog.',
-					self::GITHUB_USER,
-					self::GITHUB_REPO
-				) ),
-		) );
+		$res->sections = array(
+			'description' => ! empty( $readme['description'] )
+				? $readme['description']
+				: '<p>' . esc_html( self::PLUGIN_DESCRIPTION ) . '</p>',
+		);
+
+		if ( ! empty( $readme['installation'] ) ) {
+			$res->sections['installation'] = $readme['installation'];
+		}
+
+		if ( ! empty( $readme['faq'] ) ) {
+			$res->sections['faq'] = $readme['faq'];
+		}
+
+		$res->sections['changelog'] = ! empty( $readme['changelog'] )
+			? $readme['changelog']
+			: sprintf(
+				'<p>See <a href="https://github.com/%s/%s/releases" target="_blank">GitHub releases</a> for changelog.</p>',
+				esc_attr( self::GITHUB_USER ),
+				esc_attr( self::GITHUB_REPO )
+			);
 
 		return $res;
+	}
+
+	public static function plugin_info_css(): void {
+		if ( ! isset( $_GET['plugin'], $_GET['tab'] ) ) {
+			return;
+		}
+		if ( 'plugin-information' !== sanitize_text_field( wp_unslash( $_GET['tab'] ) )
+			|| self::PLUGIN_SLUG !== sanitize_text_field( wp_unslash( $_GET['plugin'] ) ) ) {
+			return;
+		}
+
+		echo '<style>'
+			. '#section-holder .section h2 { margin: 1.5em 0 0.5em; clear: none; }'
+			. '#section-holder .section h3 { margin: 1.5em 0 0.5em; }'
+			. '#section-holder .section > :first-child { margin-top: 0; }'
+			. '.md-table { display: table; width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 13px; }'
+			. '.md-tr { display: table-row; }'
+			. '.md-tr > span { display: table-cell; padding: 6px 10px; border: 1px solid #ddd; vertical-align: top; }'
+			. '.md-th > span { font-weight: 600; background: #f5f5f5; }'
+			. '</style>';
+
+		if ( defined( 'self::REQUIRES_GF' ) ) {
+			$gf_version = esc_html( self::REQUIRES_GF );
+			echo '<script>'
+				. 'document.addEventListener("DOMContentLoaded",function(){'
+				. 'var items=document.querySelectorAll(".fyi ul li");'
+				. 'var php=null;'
+				. 'for(var i=0;i<items.length;i++){if(items[i].textContent.indexOf("Requires PHP")!==-1){php=items[i];break;}}'
+				. 'if(!php)return;'
+				. 'var li=document.createElement("li");'
+				. 'li.innerHTML="<strong>Requires Gravity Forms:<\/strong> ' . $gf_version . ' or higher";'
+				. 'php.parentNode.insertBefore(li,php.nextSibling);'
+				. '});'
+				. '</script>';
+		}
+	}
+
+	// =========================================================================
+	// README.md Parsing
+	// =========================================================================
+
+	private static function parse_readme(): array {
+		$readme_path = WP_PLUGIN_DIR . '/' . dirname( self::PLUGIN_FILE ) . '/README.md';
+
+		if ( ! file_exists( $readme_path ) ) {
+			return array();
+		}
+
+		$content = file_get_contents( $readme_path );
+		if ( false === $content ) {
+			return array();
+		}
+
+		// Remove the main title line (# Title).
+		$content = preg_replace( '/^#\s+[^\n]+\n*/m', '', $content, 1 );
+
+		// Sections that are NOT part of the description tab.
+		$utility_sections = array(
+			'changelog', 'requirements', 'installation', 'faq',
+			'project structure', 'acknowledgements', 'license',
+		);
+
+		// Split content by ## headers.
+		$parts = preg_split( '/^##\s+/m', $content );
+
+		$description  = trim( $parts[0] ?? '' );
+		$installation = '';
+		$faq          = '';
+		$changelog    = '';
+
+		for ( $i = 1, $count = count( $parts ); $i < $count; $i++ ) {
+			$lines = explode( "\n", $parts[ $i ], 2 );
+			$title = strtolower( trim( $lines[0] ) );
+			$body  = trim( $lines[1] ?? '' );
+
+			if ( 'installation' === $title ) {
+				$installation .= $body . "\n\n";
+			} elseif ( 'faq' === $title ) {
+				$faq .= $body . "\n\n";
+			} elseif ( 'changelog' === $title ) {
+				$changelog .= $body . "\n\n";
+			} elseif ( ! in_array( $title, $utility_sections, true ) ) {
+				$description .= "\n\n## " . trim( $lines[0] ) . "\n" . $body;
+			}
+		}
+
+		return array(
+			'description'  => self::markdown_to_html( trim( $description ) ),
+			'installation' => self::markdown_to_html( trim( $installation ) ),
+			'faq'          => self::markdown_to_html( trim( $faq ) ),
+			'changelog'    => self::markdown_to_html( trim( $changelog ) ),
+		);
+	}
+
+	private static function markdown_to_html( string $markdown ): string {
+		if ( '' === $markdown ) {
+			return '';
+		}
+
+		// Remove images (not useful in the modal).
+		$markdown = preg_replace( '/!\[[^\]]*\]\([^\)]+\)/', '', $markdown );
+
+		if ( ! class_exists( 'Parsedown' ) ) {
+			require_once __DIR__ . '/Parsedown.php';
+		}
+
+		$parsedown = new Parsedown();
+		$parsedown->setSafeMode( true );
+
+		$html = $parsedown->text( $markdown );
+
+		// Convert <table> to wp_kses-safe <div>/<span> structures.
+		$html = self::tables_to_divs( $html );
+
+		return $html;
+	}
+
+	private static function tables_to_divs( string $html ): string {
+		return preg_replace_callback( '/<table>(.*?)<\/table>/s', function ( $m ) {
+			$table_html = $m[1];
+			$output = '<div class="md-table">';
+
+			preg_match_all( '/<tr>(.*?)<\/tr>/s', $table_html, $rows );
+
+			foreach ( $rows[1] as $idx => $row_content ) {
+				$is_header = ( 0 === $idx && strpos( $table_html, '<thead>' ) !== false );
+				$row_class = $is_header ? 'md-tr md-th' : 'md-tr';
+
+				preg_match_all( '/<t[hd]>(.*?)<\/t[hd]>/s', $row_content, $cells );
+
+				$output .= '<div class="' . $row_class . '">';
+				foreach ( $cells[1] as $cell ) {
+					$output .= '<span>' . $cell . '</span>';
+				}
+				$output .= '</div>';
+			}
+
+			$output .= '</div>';
+			return $output;
+		}, $html );
 	}
 
 	public static function fix_folder_name( $source, $remote_source, $upgrader, $hook_extra ) {
@@ -219,190 +371,19 @@ class GRFI_GitHub_Updater {
 			return $new_source;
 		}
 
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( sprintf(
+				'%s updater: failed to rename update folder from %s to %s',
+				self::PLUGIN_NAME,
+				$source,
+				$new_source
+			) );
+		}
+
 		return new WP_Error(
 			'rename_failed',
-			__( 'Unable to rename the update folder. Please retry or update manually.', 'gf-require-if' )
+			__( 'Unable to rename the update folder. Please retry or update manually.', self::TEXT_DOMAIN )
 		);
-	}
-
-	/**
-	 * Add "View details" link to the plugin row meta.
-	 *
-	 * @param array  $links Plugin row meta links.
-	 * @param string $file  Plugin file path.
-	 * @return array Modified links.
-	 */
-	public static function plugin_row_meta( array $links, string $file ): array {
-		if ( self::PLUGIN_FILE !== $file ) {
-			return $links;
-		}
-
-		$links[] = sprintf(
-			'<a href="%s" class="thickbox open-plugin-details-modal" aria-label="%s" data-title="%s">%s</a>',
-			esc_url(
-				admin_url(
-					'plugin-install.php?tab=plugin-information&plugin=' . self::PLUGIN_SLUG .
-					'&TB_iframe=true&width=600&height=550'
-				)
-			),
-			esc_attr( sprintf(
-				/* translators: %s: plugin name */
-				__( 'More information about %s', 'gf-require-if' ),
-				self::PLUGIN_NAME
-			) ),
-			esc_attr( self::PLUGIN_NAME ),
-			esc_html__( 'View details', 'gf-require-if' )
-		);
-
-		return $links;
-	}
-
-	/**
-	 * Enqueue Thickbox on the plugins page for the View Details modal.
-	 *
-	 * @param string $hook Current admin page hook.
-	 */
-	public static function enqueue_thickbox( string $hook ): void {
-		if ( 'plugins.php' === $hook ) {
-			add_thickbox();
-		}
-	}
-
-	// =========================================================================
-	// README.md Parsing
-	// =========================================================================
-
-	/**
-	 * Parse the plugin's README.md and return sections for the modal.
-	 *
-	 * @return array{description: string, installation: string, changelog: string, faq: string}
-	 */
-	private static function parse_readme(): array {
-		$defaults = array(
-			'description'  => '',
-			'installation' => '',
-			'changelog'    => '',
-			'faq'          => '',
-		);
-
-		$readme_path = WP_PLUGIN_DIR . '/' . dirname( self::PLUGIN_FILE ) . '/README.md';
-		if ( ! file_exists( $readme_path ) ) {
-			return $defaults;
-		}
-
-		$content = file_get_contents( $readme_path );
-		if ( false === $content ) {
-			return $defaults;
-		}
-
-		$html = self::markdown_to_html( $content );
-
-		return array(
-			'description'  => self::extract_section( $html, 'Description' )
-			                  ?: self::extract_first_section( $html ),
-			'installation' => self::extract_section( $html, 'Installation' ),
-			'changelog'    => self::extract_section( $html, 'Changelog' ),
-			'faq'          => self::extract_section( $html, 'FAQ' )
-			                  ?: self::extract_section( $html, 'Frequently Asked Questions' ),
-		);
-	}
-
-	/**
-	 * Convert Markdown to basic HTML.
-	 *
-	 * @param string $markdown Raw Markdown content.
-	 * @return string HTML.
-	 */
-	private static function markdown_to_html( string $markdown ): string {
-		$html = str_replace( "\r\n", "\n", $markdown );
-
-		// Headers — use h4 for ### to avoid WP core h3 margin styling.
-		$html = preg_replace( '/^### (.+)$/m', '<h4>$1</h4>', $html );
-		$html = preg_replace( '/^## (.+)$/m', '<h2>$1</h2>', $html );
-		$html = preg_replace( '/^# (.+)$/m', '<h1>$1</h1>', $html );
-
-		// Inline formatting.
-		$html = preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $html );
-		$html = preg_replace( '/\*(.+?)\*/', '<em>$1</em>', $html );
-		$html = preg_replace( '/`([^`]+)`/', '<code>$1</code>', $html );
-		$html = preg_replace( '/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $html );
-
-		// Process lists line by line for proper ul/ol wrapping.
-		$lines        = explode( "\n", $html );
-		$result_lines = array();
-		$in_ol        = false;
-		$in_ul        = false;
-
-		foreach ( $lines as $line ) {
-			if ( preg_match( '/^(\d+)\. (.+)$/', $line, $m ) ) {
-				if ( $in_ul ) {
-					$result_lines[] = '</ul>';
-					$in_ul = false;
-				}
-				if ( ! $in_ol ) {
-					$result_lines[] = '<ol>';
-					$in_ol = true;
-				}
-				$result_lines[] = '<li>' . $m[2] . '</li>';
-			} elseif ( preg_match( '/^- (.+)$/', $line, $m ) ) {
-				if ( $in_ol ) {
-					$result_lines[] = '</ol>';
-					$in_ol = false;
-				}
-				if ( ! $in_ul ) {
-					$result_lines[] = '<ul>';
-					$in_ul = true;
-				}
-				$result_lines[] = '<li>' . $m[1] . '</li>';
-			} else {
-				if ( $in_ol ) {
-					$result_lines[] = '</ol>';
-					$in_ol = false;
-				}
-				if ( $in_ul ) {
-					$result_lines[] = '</ul>';
-					$in_ul = false;
-				}
-				$result_lines[] = $line;
-			}
-		}
-
-		if ( $in_ol ) {
-			$result_lines[] = '</ol>';
-		}
-		if ( $in_ul ) {
-			$result_lines[] = '</ul>';
-		}
-
-		return implode( "\n", $result_lines );
-	}
-
-	/**
-	 * Extract a named h2 section from HTML.
-	 *
-	 * @param string $html         Full HTML.
-	 * @param string $section_name Section heading text.
-	 * @return string Section content or empty string.
-	 */
-	private static function extract_section( string $html, string $section_name ): string {
-		$pattern = '/<h2[^>]*>' . preg_quote( $section_name, '/' ) . '<\/h2>(.*?)(?=<h2|$)/is';
-		if ( preg_match( $pattern, $html, $m ) ) {
-			return trim( $m[1] );
-		}
-		return '';
-	}
-
-	/**
-	 * Extract content between the first h1 and the first h2 as a description fallback.
-	 *
-	 * @param string $html Full HTML.
-	 * @return string Content or empty string.
-	 */
-	private static function extract_first_section( string $html ): string {
-		if ( preg_match( '/<h1[^>]*>.*?<\/h1>(.*?)(?=<h2|$)/is', $html, $m ) ) {
-			return trim( $m[1] );
-		}
-		return '';
 	}
 }
 

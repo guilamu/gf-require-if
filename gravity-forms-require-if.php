@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms Require If
  * Plugin URI:  https://github.com/guilamu/gravity-forms-require-if
  * Description: Make the required state of supported Gravity Forms fields conditional.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      Guilamu
  * Author URI:  https://github.com/guilamu
  * Text Domain: gf-require-if
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'GRFI_VERSION', '1.0.0' );
+define( 'GRFI_VERSION', '1.0.1' );
 define( 'GRFI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GRFI_URL', plugin_dir_url( __FILE__ ) );
 define( 'GRFI_FILE', __FILE__ );
@@ -64,6 +64,18 @@ function grfi_plugin_row_meta( array $links, string $file ): array {
     if ( plugin_basename( GRFI_FILE ) !== $file ) {
         return $links;
     }
+
+    // "View details" thickbox link.
+    $links[] = sprintf(
+        '<a href="%s" class="thickbox open-plugin-details-modal" aria-label="%s" data-title="%s">%s</a>',
+        esc_url( self_admin_url(
+            'plugin-install.php?tab=plugin-information&plugin=gravity-forms-require-if'
+            . '&TB_iframe=true&width=772&height=926'
+        ) ),
+        esc_attr__( 'More information about Gravity Forms Require If', 'gf-require-if' ),
+        esc_attr__( 'Gravity Forms Require If', 'gf-require-if' ),
+        esc_html__( 'View details', 'gf-require-if' )
+    );
 
     if ( class_exists( 'Guilamu_Bug_Reporter' ) ) {
         $links[] = sprintf(
