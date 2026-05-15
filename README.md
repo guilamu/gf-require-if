@@ -114,6 +114,15 @@ Yes. The frontend script initializes via multiple fallback methods (GF action ho
 
 ## Changelog
 
+### 1.0.3
+- Hardened GitHub auto-update integration to match the WordPress GitHub auto-update reference flow
+- Added safe plugin details fallback handling, release-note injection, banner styling, and image stripping for the modal
+- Added a GitHub Actions release workflow to publish a correctly named plugin zip asset
+
+### 1.0.2
+- Ignore unsupported field types in the form editor Require If lifecycle
+- Prevent field-settings collisions with third-party fields such as Chained Selects
+
 ### 1.0.1
 - GitHub updater rewritten to use Parsedown for README.md parsing
 - Added "View details" thickbox link to plugin row meta

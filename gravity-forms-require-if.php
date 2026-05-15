@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms Require If
  * Plugin URI:  https://github.com/guilamu/gravity-forms-require-if
  * Description: Make the required state of supported Gravity Forms fields conditional.
- * Version:     1.0.1
+ * Version:     1.0.3
  * Author:      Guilamu
  * Author URI:  https://github.com/guilamu
  * Text Domain: gf-require-if
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'GRFI_VERSION', '1.0.1' );
+define( 'GRFI_VERSION', '1.0.3' );
 define( 'GRFI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GRFI_URL', plugin_dir_url( __FILE__ ) );
 define( 'GRFI_FILE', __FILE__ );

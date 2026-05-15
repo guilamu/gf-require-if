@@ -92,7 +92,8 @@ class GRFI_Field_Settings {
                 'valYes'        => esc_html__( 'Yes', 'gf-require-if' ),
                 'valNo'         => esc_html__( 'No', 'gf-require-if' ),
             ),
-            'wp_roles' => GF_Require_If::get_wp_roles_for_js(),
+            'wp_roles'       => GF_Require_If::get_wp_roles_for_js(),
+            'supportedTypes' => array_values( self::$supported_types ),
         );
         ?>
         <div class="conditional_logic_flyout_container" id="grfi_flyout_container">
@@ -100,6 +101,7 @@ class GRFI_Field_Settings {
         </div>
         <script type="text/javascript">
             var grfiConfig = <?php echo wp_json_encode( $config ); ?>;
+            var grfiSupportedTypes = grfiConfig.supportedTypes || <?php echo $supported; ?>;
 
             // Boot the external JS now that grfiConfig is defined.
             if ( typeof window.grfiBoot === 'function' ) {
@@ -108,10 +110,9 @@ class GRFI_Field_Settings {
 
             // Register grfi_require_if_setting in fieldSettings for supported types.
             jQuery( document ).ready( function() {
-                var supported = <?php echo $supported; ?>;
                 if ( typeof fieldSettings !== 'undefined' ) {
-                    for ( var i = 0; i < supported.length; i++ ) {
-                        var type = supported[ i ];
+                    for ( var i = 0; i < grfiSupportedTypes.length; i++ ) {
+                        var type = grfiSupportedTypes[ i ];
                         if ( typeof fieldSettings[ type ] !== 'undefined' ) {
                             fieldSettings[ type ] += ', .grfi_require_if_setting';
                         }
@@ -125,6 +126,14 @@ class GRFI_Field_Settings {
 
             // Load state when a field is selected.
             jQuery( document ).on( 'gform_load_field_settings', function( event, field, form ) {
+                if ( ! field || grfiSupportedTypes.indexOf( field.type ) === -1 ) {
+                    delete window._grfiPending;
+                    if ( typeof window.grfiInstance !== 'undefined' && typeof window.grfiInstance.clearField === 'function' ) {
+                        window.grfiInstance.clearField();
+                    }
+                    return;
+                }
+
                 if ( typeof window.grfiInstance !== 'undefined' ) {
                     window.grfiInstance.loadField( field, form );
                 } else {

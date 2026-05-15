@@ -18,8 +18,9 @@
             return;
         }
 
-    var S     = grfiConfig.strings || {};
-    var ROLES = grfiConfig.wp_roles || [];
+    var S                     = grfiConfig.strings || {};
+    var ROLES                 = grfiConfig.wp_roles || [];
+    var SUPPORTED_FIELD_TYPES = grfiConfig.supportedTypes || [];
 
     /* -----------------------------------------------------------------------
      * Sources, operators, supported types
@@ -216,6 +217,11 @@
     };
 
     GRFIFlyout.prototype.loadField = function( field, form ) {
+        if ( ! this.isSupportedField( field ) ) {
+            this.clearField();
+            return;
+        }
+
         if ( this.visible && this.fieldId !== field.id ) {
             this.hideFlyout();
         }
@@ -230,6 +236,29 @@
 
         if ( this.visible ) {
             this.renderRules();
+        }
+    };
+
+    GRFIFlyout.prototype.isSupportedField = function( field ) {
+        return !! field && SUPPORTED_FIELD_TYPES.indexOf( field.type ) !== -1;
+    };
+
+    GRFIFlyout.prototype.clearField = function() {
+        if ( this.visible ) {
+            this.hideFlyout();
+        }
+
+        this.fieldId = null;
+        this.field   = null;
+        this.form    = null;
+        this.state   = null;
+
+        if ( this.els.sidebar ) {
+            this.els.sidebar.innerHTML = '';
+        }
+
+        if ( this.els.flyout ) {
+            this.els.flyout.innerHTML = '';
         }
     };
 

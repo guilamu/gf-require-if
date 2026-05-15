@@ -45,8 +45,192 @@ class GRFI_GitHub_Updater {
 	public static function init(): void {
 		add_filter( 'update_plugins_github.com', array( self::class, 'check_for_update' ), 10, 4 );
 		add_filter( 'plugins_api', array( self::class, 'plugin_info' ), 20, 3 );
+		add_filter( 'plugins_api_result', array( self::class, 'finalize_plugin_info' ), PHP_INT_MAX, 3 );
 		add_filter( 'upgrader_source_selection', array( self::class, 'fix_folder_name' ), 10, 4 );
 		add_action( 'admin_head', array( self::class, 'plugin_info_css' ) );
+	}
+
+	public static function finalize_plugin_info( $result, $action, $args ) {
+		if ( ! self::is_plugin_information_api_request( $action, $args ) ) {
+			return $result;
+		}
+
+		return self::get_safe_plugin_info_result();
+	}
+
+	private static function is_plugin_information_api_request( $action, $args ): bool {
+		return 'plugin_information' === $action
+			&& is_object( $args )
+			&& isset( $args->slug )
+			&& self::PLUGIN_SLUG === $args->slug;
+	}
+
+	private static function get_plugin_file(): string {
+		if ( defined( 'GRFI_FILE' ) && is_string( GRFI_FILE ) && '' !== GRFI_FILE ) {
+			return plugin_basename( GRFI_FILE );
+		}
+
+		return self::PLUGIN_FILE;
+	}
+
+	private static function get_plugin_directory(): string {
+		return dirname( self::get_plugin_file() );
+	}
+
+	private static function get_safe_plugin_info_result(): stdClass {
+		static $plugin_info = null;
+
+		if ( $plugin_info instanceof stdClass ) {
+			return clone $plugin_info;
+		}
+
+		try {
+			$plugin_info = self::build_plugin_info_result();
+		} catch ( Throwable $throwable ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf(
+					'%s plugin details fallback: %s in %s:%d',
+					self::PLUGIN_NAME,
+					$throwable->getMessage(),
+					$throwable->getFile(),
+					$throwable->getLine()
+				) );
+			}
+
+			$plugin_info = self::build_fallback_plugin_info_result();
+		}
+
+		return clone $plugin_info;
+	}
+
+	private static function build_plugin_info_result(): stdClass {
+		$release_data       = self::get_release_data();
+		$installed_version  = defined( 'GRFI_VERSION' ) ? GRFI_VERSION : '1.0.0';
+		$release_version    = $release_data ? ltrim( $release_data['tag_name'], 'v' ) : '';
+		$display_version    = $installed_version;
+		$has_update         = '' !== $release_version && version_compare( $release_version, $installed_version, '>' );
+
+		if ( $has_update ) {
+			$display_version = $release_version;
+		}
+
+		$result               = new stdClass();
+		$result->name         = self::PLUGIN_NAME;
+		$result->slug         = self::PLUGIN_SLUG;
+		$result->plugin       = self::get_plugin_file();
+		$result->version      = $display_version;
+		$result->author       = sprintf( '<a href="https://github.com/%s">%s</a>', self::GITHUB_USER, self::GITHUB_USER );
+		$result->homepage     = sprintf( 'https://github.com/%s/%s', self::GITHUB_USER, self::GITHUB_REPO );
+		$result->requires     = self::REQUIRES_WP;
+		$result->tested       = get_bloginfo( 'version' );
+		$result->requires_php = self::REQUIRES_PHP;
+		$result->external     = true;
+		$result->banners      = array();
+		$result->icons        = array();
+
+		if ( $release_data && $has_update ) {
+			$package_url = self::get_package_url( $release_data );
+
+			if ( '' !== $package_url ) {
+				$result->download_link = $package_url;
+			}
+
+			if ( ! empty( $release_data['published_at'] ) ) {
+				$result->last_updated = $release_data['published_at'];
+			}
+		}
+
+		$result->sections = self::build_plugin_info_sections(
+			self::parse_readme(),
+			$release_data,
+			$installed_version,
+			$display_version
+		);
+
+		return $result;
+	}
+
+	private static function build_plugin_info_sections(
+		array $readme,
+		?array $release_data,
+		string $installed_version,
+		string $display_version
+	): array {
+		$sections = array(
+			'description' => ! empty( $readme['description'] )
+				? $readme['description']
+				: '<p>' . esc_html( self::PLUGIN_DESCRIPTION ) . '</p>',
+		);
+
+		if ( ! empty( $readme['installation'] ) ) {
+			$sections['installation'] = $readme['installation'];
+		}
+
+		if ( ! empty( $readme['faq'] ) ) {
+			$sections['faq'] = $readme['faq'];
+		}
+
+		$changelog_html = '';
+
+		if (
+			is_array( $release_data )
+			&& ! empty( $release_data['body'] )
+			&& version_compare( $installed_version, $display_version, '<' )
+		) {
+			$changelog_html .= '<h4>' . esc_html( $display_version ) . '</h4>'
+				. self::markdown_to_html( (string) $release_data['body'] );
+		}
+
+		if ( ! empty( $readme['changelog'] ) ) {
+			$changelog_html .= $readme['changelog'];
+		}
+
+		$sections['changelog'] = ! empty( $changelog_html )
+			? $changelog_html
+			: sprintf(
+				'<p>See <a href="https://github.com/%s/%s/releases" target="_blank">GitHub releases</a> for changelog.</p>',
+				esc_attr( self::GITHUB_USER ),
+				esc_attr( self::GITHUB_REPO )
+			);
+
+		return $sections;
+	}
+
+	private static function build_fallback_plugin_info_result(): stdClass {
+		$result               = new stdClass();
+		$result->name         = self::PLUGIN_NAME;
+		$result->slug         = self::PLUGIN_SLUG;
+		$result->plugin       = self::get_plugin_file();
+		$result->version      = defined( 'GRFI_VERSION' ) ? GRFI_VERSION : '1.0.0';
+		$result->author       = sprintf( '<a href="https://github.com/%s">%s</a>', self::GITHUB_USER, self::GITHUB_USER );
+		$result->homepage     = sprintf( 'https://github.com/%s/%s', self::GITHUB_USER, self::GITHUB_REPO );
+		$result->requires     = self::REQUIRES_WP;
+		$result->tested       = get_bloginfo( 'version' );
+		$result->requires_php = self::REQUIRES_PHP;
+		$result->external     = true;
+		$result->banners      = array();
+		$result->icons        = array();
+		$result->sections     = array(
+			'description' => '<p>' . esc_html( self::PLUGIN_DESCRIPTION ) . '</p>',
+			'changelog'   => sprintf(
+				'<p>See <a href="https://github.com/%s/%s/releases" target="_blank">GitHub releases</a> for changelog.</p>',
+				esc_attr( self::GITHUB_USER ),
+				esc_attr( self::GITHUB_REPO )
+			),
+		);
+
+		return $result;
+	}
+
+	private static function is_plugin_info_request(): bool {
+		if ( ! isset( $_GET['tab'], $_GET['plugin'] ) ) {
+			return false;
+		}
+
+		$tab    = sanitize_text_field( wp_unslash( $_GET['tab'] ) );
+		$plugin = sanitize_text_field( wp_unslash( $_GET['plugin'] ) );
+
+		return 'plugin-information' === $tab && self::PLUGIN_SLUG === $plugin;
 	}
 
 	private static function get_release_data(): ?array {
@@ -71,6 +255,7 @@ class GRFI_GitHub_Updater {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( self::PLUGIN_NAME . ' Update Error: ' . $response->get_error_message() );
 			}
+
 			return null;
 		}
 
@@ -79,6 +264,7 @@ class GRFI_GitHub_Updater {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( self::PLUGIN_NAME . " Update Error: HTTP {$response_code}" );
 			}
+
 			return null;
 		}
 
@@ -88,6 +274,7 @@ class GRFI_GitHub_Updater {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( self::PLUGIN_NAME . ' Update Error: No tag_name in release' );
 			}
+
 			return null;
 		}
 
@@ -100,8 +287,8 @@ class GRFI_GitHub_Updater {
 		if ( ! empty( $release_data['assets'] ) && is_array( $release_data['assets'] ) ) {
 			foreach ( $release_data['assets'] as $asset ) {
 				if (
-					isset( $asset['browser_download_url'], $asset['name'] ) &&
-					str_ends_with( $asset['name'], '.zip' )
+					isset( $asset['browser_download_url'], $asset['name'] )
+					&& str_ends_with( $asset['name'], '.zip' )
 				) {
 					return $asset['browser_download_url'];
 				}
@@ -112,7 +299,7 @@ class GRFI_GitHub_Updater {
 	}
 
 	public static function check_for_update( $update, array $plugin_data, string $plugin_file, $locales ) {
-		if ( self::PLUGIN_FILE !== $plugin_file ) {
+		if ( self::get_plugin_file() !== $plugin_file ) {
 			return $update;
 		}
 
@@ -130,12 +317,12 @@ class GRFI_GitHub_Updater {
 		return array(
 			'id'            => 'github.com/' . self::GITHUB_USER . '/' . self::GITHUB_REPO,
 			'slug'          => self::PLUGIN_SLUG,
-			'plugin'        => self::PLUGIN_FILE,
+			'plugin'        => self::get_plugin_file(),
 			'new_version'   => $new_version,
 			'version'       => $new_version,
 			'package'       => self::get_package_url( $release_data ),
 			'url'           => $release_data['html_url'],
-			'tested'        => get_bloginfo( 'version' ),
+			'tested'        => self::TESTED_WP,
 			'requires_php'  => self::REQUIRES_PHP,
 			'compatibility' => new stdClass(),
 			'icons'         => array(),
@@ -144,75 +331,53 @@ class GRFI_GitHub_Updater {
 	}
 
 	public static function plugin_info( $res, $action, $args ) {
-		if ( 'plugin_information' !== $action ) {
+		if ( ! self::is_plugin_information_api_request( $action, $args ) ) {
 			return $res;
 		}
 
-		if ( ! isset( $args->slug ) || self::PLUGIN_SLUG !== $args->slug ) {
-			return $res;
-		}
-
-		$plugin_file = WP_PLUGIN_DIR . '/' . self::PLUGIN_FILE;
-		$plugin_data = get_plugin_data( $plugin_file, false, false );
-		$release_data = self::get_release_data();
-
-		$version = $release_data
-			? ltrim( $release_data['tag_name'], 'v' )
-			: ( $plugin_data['Version'] ?? '1.0.0' );
-
-		$res               = new stdClass();
-		$res->name         = self::PLUGIN_NAME;
-		$res->slug         = self::PLUGIN_SLUG;
-		$res->plugin       = self::PLUGIN_FILE;
-		$res->version      = $version;
-		$res->author       = sprintf( '<a href="https://github.com/%s">%s</a>', self::GITHUB_USER, self::GITHUB_USER );
-		$res->homepage     = sprintf( 'https://github.com/%s/%s', self::GITHUB_USER, self::GITHUB_REPO );
-		$res->requires     = self::REQUIRES_WP;
-		$res->tested       = get_bloginfo( 'version' );
-		$res->requires_php = self::REQUIRES_PHP;
-
-		if ( $release_data ) {
-			$res->download_link = self::get_package_url( $release_data );
-			$res->last_updated  = $release_data['published_at'] ?? '';
-		}
-
-		$readme = self::parse_readme();
-
-		$res->sections = array(
-			'description' => ! empty( $readme['description'] )
-				? $readme['description']
-				: '<p>' . esc_html( self::PLUGIN_DESCRIPTION ) . '</p>',
-		);
-
-		if ( ! empty( $readme['installation'] ) ) {
-			$res->sections['installation'] = $readme['installation'];
-		}
-
-		if ( ! empty( $readme['faq'] ) ) {
-			$res->sections['faq'] = $readme['faq'];
-		}
-
-		$res->sections['changelog'] = ! empty( $readme['changelog'] )
-			? $readme['changelog']
-			: sprintf(
-				'<p>See <a href="https://github.com/%s/%s/releases" target="_blank">GitHub releases</a> for changelog.</p>',
-				esc_attr( self::GITHUB_USER ),
-				esc_attr( self::GITHUB_REPO )
-			);
-
-		return $res;
+		return self::get_safe_plugin_info_result();
 	}
 
 	public static function plugin_info_css(): void {
-		if ( ! isset( $_GET['plugin'], $_GET['tab'] ) ) {
-			return;
-		}
-		if ( 'plugin-information' !== sanitize_text_field( wp_unslash( $_GET['tab'] ) )
-			|| self::PLUGIN_SLUG !== sanitize_text_field( wp_unslash( $_GET['plugin'] ) ) ) {
+		if ( ! self::is_plugin_info_request() ) {
 			return;
 		}
 
+		$pattern_css = '--s: 27px;'
+			. '--c1: #b2b2b2;'
+			. '--c2: #ffffff;'
+			. '--c3: #d9d9d9;'
+			. '--_g: var(--c3) 0 120deg, #0000 0;';
+
+		$pattern_bg = 'conic-gradient(from -60deg at 50% calc(100%/3), var(--_g)),'
+			. 'conic-gradient(from 120deg at 50% calc(200%/3), var(--_g)),'
+			. 'conic-gradient(from 60deg at calc(200%/3), var(--c3) 60deg, var(--c2) 0 120deg, #0000 0),'
+			. 'conic-gradient(from 180deg at calc(100%/3), var(--c1) 60deg, var(--_g)),'
+			. 'linear-gradient(90deg, var(--c1) calc(100%/6), var(--c2) 0 50%,'
+			. 'var(--c1) 0 calc(500%/6), var(--c2) 0)';
+
 		echo '<style>'
+			. '#plugin-information-title.with-banner {'
+			. $pattern_css
+			. 'background: ' . $pattern_bg . ' !important;'
+			. 'background-size: calc(1.732 * var(--s)) var(--s) !important;'
+			. '}'
+			. '#plugin-information-title.with-banner h2 {'
+			. 'position: relative;'
+			. 'font-family: "Helvetica Neue", sans-serif;'
+			. 'display: inline-block;'
+			. 'font-size: 30px;'
+			. 'line-height: 1.68;'
+			. 'box-sizing: border-box;'
+			. 'max-width: 100%;'
+			. 'padding: 0 15px;'
+			. 'margin-top: 174px;'
+			. 'color: #fff;'
+			. 'background: rgba(29, 35, 39, 0.9);'
+			. 'text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);'
+			. 'box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);'
+			. 'border-radius: 8px;'
+			. '}'
 			. '#section-holder .section h2 { margin: 1.5em 0 0.5em; clear: none; }'
 			. '#section-holder .section h3 { margin: 1.5em 0 0.5em; }'
 			. '#section-holder .section > :first-child { margin-top: 0; }'
@@ -222,20 +387,20 @@ class GRFI_GitHub_Updater {
 			. '.md-th > span { font-weight: 600; background: #f5f5f5; }'
 			. '</style>';
 
-		if ( defined( 'self::REQUIRES_GF' ) ) {
-			$gf_version = esc_html( self::REQUIRES_GF );
-			echo '<script>'
-				. 'document.addEventListener("DOMContentLoaded",function(){'
-				. 'var items=document.querySelectorAll(".fyi ul li");'
-				. 'var php=null;'
-				. 'for(var i=0;i<items.length;i++){if(items[i].textContent.indexOf("Requires PHP")!==-1){php=items[i];break;}}'
-				. 'if(!php)return;'
-				. 'var li=document.createElement("li");'
-				. 'li.innerHTML="<strong>Requires Gravity Forms:<\/strong> ' . $gf_version . ' or higher";'
-				. 'php.parentNode.insertBefore(li,php.nextSibling);'
-				. '});'
-				. '</script>';
-		}
+		$gf_version = esc_html( self::REQUIRES_GF );
+		echo '<script>'
+			. 'document.addEventListener("DOMContentLoaded",function(){'
+			. 'var title=document.getElementById("plugin-information-title");'
+			. 'if(title){title.classList.add("with-banner");}'
+			. 'var items=document.querySelectorAll(".fyi ul li");'
+			. 'var php=null;'
+			. 'for(var i=0;i<items.length;i++){if(items[i].textContent.indexOf("Requires PHP")!==-1){php=items[i];break;}}'
+			. 'if(!php)return;'
+			. 'var li=document.createElement("li");'
+			. 'li.innerHTML="<strong>Requires Gravity Forms:<\/strong> ' . $gf_version . ' or higher";'
+			. 'php.parentNode.insertBefore(li,php.nextSibling);'
+			. '});'
+			. '</script>';
 	}
 
 	// =========================================================================
@@ -243,7 +408,7 @@ class GRFI_GitHub_Updater {
 	// =========================================================================
 
 	private static function parse_readme(): array {
-		$readme_path = WP_PLUGIN_DIR . '/' . dirname( self::PLUGIN_FILE ) . '/README.md';
+		$readme_path = WP_PLUGIN_DIR . '/' . self::get_plugin_directory() . '/README.md';
 
 		if ( ! file_exists( $readme_path ) ) {
 			return array();
@@ -302,9 +467,36 @@ class GRFI_GitHub_Updater {
 
 		// Remove images (not useful in the modal).
 		$markdown = preg_replace( '/!\[[^\]]*\]\([^\)]+\)/', '', $markdown );
+		$markdown = preg_replace( '/<p\b[^>]*>\s*(?:(?:<a\b[^>]*>\s*)?<img\b[^>]*>\s*(?:<\/a>\s*)?)+<\/p>\s*/is', '', $markdown );
+		$markdown = preg_replace( '/(?:<a\b[^>]*>\s*)?<img\b[^>]*>\s*(?:<\/a>)?/i', '', $markdown );
 
 		if ( ! class_exists( 'Parsedown' ) ) {
-			require_once __DIR__ . '/Parsedown.php';
+			$parsedown_path = __DIR__ . '/Parsedown.php';
+
+			if ( ! file_exists( $parsedown_path ) ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( sprintf(
+						'%s plugin details fallback: missing Parsedown.php at %s',
+						self::PLUGIN_NAME,
+						$parsedown_path
+					) );
+				}
+
+				return wpautop( esc_html( $markdown ) );
+			}
+
+			require_once $parsedown_path;
+		}
+
+		if ( ! class_exists( 'Parsedown' ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf(
+					'%s plugin details fallback: Parsedown class unavailable after load',
+					self::PLUGIN_NAME
+				) );
+			}
+
+			return wpautop( esc_html( $markdown ) );
 		}
 
 		$parsedown = new Parsedown();
@@ -350,11 +542,11 @@ class GRFI_GitHub_Updater {
 			return $source;
 		}
 
-		if ( self::PLUGIN_FILE !== $hook_extra['plugin'] ) {
+		if ( self::get_plugin_file() !== $hook_extra['plugin'] ) {
 			return $source;
 		}
 
-		$correct_folder = dirname( self::PLUGIN_FILE );
+		$correct_folder = self::get_plugin_directory();
 		$source_folder  = basename( untrailingslashit( $source ) );
 
 		if ( $source_folder === $correct_folder ) {
