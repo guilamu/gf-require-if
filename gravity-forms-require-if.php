@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: Gravity Forms Require If
- * Plugin URI:  https://github.com/guilamu/gravity-forms-require-if
+ * Plugin URI:  https://github.com/guilamu/gf-require-if
  * Description: Make the required state of supported Gravity Forms fields conditional.
  * Version:     1.0.3
  * Author:      Guilamu
  * Author URI:  https://github.com/guilamu
  * Text Domain: gf-require-if
  * Domain Path: /languages
- * Update URI:  https://github.com/guilamu/gravity-forms-require-if/
+ * Update URI:  https://github.com/guilamu/gf-require-if/
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * License:     AGPL-3.0-or-later
@@ -52,7 +52,7 @@ add_action( 'plugins_loaded', function () {
             'slug'        => 'gravity-forms-require-if',
             'name'        => 'Gravity Forms Require If',
             'version'     => GRFI_VERSION,
-            'github_repo' => 'guilamu/gravity-forms-require-if',
+            'github_repo' => 'guilamu/gf-require-if',
         ) );
     }
 }, 20 );

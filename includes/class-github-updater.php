@@ -19,7 +19,7 @@ class GRFI_GitHub_Updater {
 	// =========================================================================
 
 	private const GITHUB_USER        = 'guilamu';
-	private const GITHUB_REPO        = 'gravity-forms-require-if';
+	private const GITHUB_REPO        = 'gf-require-if';
 	private const PLUGIN_FILE        = 'gravity-forms-require-if/gravity-forms-require-if.php';
 	private const PLUGIN_SLUG        = 'gravity-forms-require-if';
 	private const PLUGIN_NAME        = 'Gravity Forms Require If';
