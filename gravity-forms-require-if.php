@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms Require If
  * Plugin URI:  https://github.com/guilamu/gf-require-if
  * Description: Make the required state of supported Gravity Forms fields conditional.
- * Version:     1.0.3
+ * Version:     1.1.0
  * Author:      Guilamu
  * Author URI:  https://github.com/guilamu
  * Text Domain: gf-require-if
@@ -19,13 +19,25 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'GRFI_VERSION', '1.0.3' );
+define( 'GRFI_VERSION', '1.1.0' );
 define( 'GRFI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GRFI_URL', plugin_dir_url( __FILE__ ) );
 define( 'GRFI_FILE', __FILE__ );
 
 // GitHub auto-updater.
 require_once GRFI_PATH . 'includes/class-github-updater.php';
+
+// Load translations. Required for self-hosted plugins: WordPress only
+// auto-loads textdomains for wordpress.org-hosted plugins.
+add_action( 'init', 'grfi_load_textdomain' );
+
+function grfi_load_textdomain(): void {
+    load_plugin_textdomain(
+        'gf-require-if',
+        false,
+        dirname( plugin_basename( GRFI_FILE ) ) . '/languages'
+    );
+}
 
 // Bootstrap via GFAddOn framework.
 add_action( 'gform_loaded', array( 'GF_Require_If_Bootstrap', 'load' ), 5 );

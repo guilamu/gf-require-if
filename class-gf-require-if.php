@@ -45,9 +45,8 @@ class GF_Require_If extends GFAddOn {
 
     public function init_frontend() {
         parent::init_frontend();
-        add_filter( 'gform_pre_render', array( $this, 'inject_wp_conditions_payload' ), 10, 1 );
+        add_action( 'gform_register_init_scripts', array( $this, 'register_frontend_init_script' ), 10, 1 );
         add_filter( 'gform_pre_validation', array( 'GRFI_Validator', 'evaluate_required_states' ), 10, 1 );
-        add_action( 'wp_footer', array( $this, 'print_frontend_data' ), 8 );
     }
 
     public function init_ajax() {
@@ -116,31 +115,52 @@ class GF_Require_If extends GFAddOn {
     }
 
     // -------------------------------------------------------------------------
-    // Frontend WP-context payload injection
+    // Frontend payload injection (GF init-script pipeline)
     // -------------------------------------------------------------------------
 
-    /** Collected per-form configs to output in wp_footer. */
-    private $frontend_forms      = array();
-    private $frontend_context    = null;
-    private $frontend_indicators = array();
+    /** WP context shared by every form on the page; built once per request. */
+    private $frontend_context = null;
 
-    public function inject_wp_conditions_payload( $form ) {
+    /**
+     * Register a per-form init script carrying the requireIf payload.
+     *
+     * Runs on gform_register_init_scripts, so the data rides GF's own init
+     * pipeline: it is re-emitted and re-executed on every render, including
+     * AJAX page changes and forms rendered after the footer.
+     */
+    public function register_frontend_init_script( $form ) {
         $configs = $this->get_form_require_if_configs( $form );
         if ( empty( $configs ) ) {
-            return $form;
+            return;
         }
 
-        $form_id = (string) rgar( $form, 'id' );
-        $this->frontend_forms[ $form_id ] = $configs;
+        $form_id = (int) rgar( $form, 'id' );
 
-        // Store the required indicator HTML for this form.
         if ( method_exists( 'GFFormsModel', 'get_required_indicator' ) ) {
-            $this->frontend_indicators[ $form_id ] = GFFormsModel::get_required_indicator( $form_id );
+            $indicator = GFFormsModel::get_required_indicator( $form_id );
         } else {
-            $this->frontend_indicators[ $form_id ] = '<span class="gfield_required gfield_required_asterisk">*</span>';
+            $indicator = '<span class="gfield_required gfield_required_asterisk">*</span>';
         }
 
-        // Build WP context (once — same for every form on the page).
+        $context = $this->get_wp_context( $configs );
+
+        $script = 'window.grfiData = window.grfiData || { forms: {}, wp_context: {}, indicators: {} };'
+            . 'window.grfiData.forms[' . wp_json_encode( (string) $form_id ) . '] = ' . wp_json_encode( $configs ) . ';'
+            . 'window.grfiData.indicators[' . wp_json_encode( (string) $form_id ) . '] = ' . wp_json_encode( $indicator ) . ';'
+            . 'window.grfiData.wp_context = ' . wp_json_encode( $context ) . ';'
+            . 'if ( window.grfiRefresh ) { window.grfiRefresh( ' . $form_id . ' ); }';
+
+        GFFormDisplay::add_init_script( $form_id, 'grfi_data', GFFormDisplay::ON_PAGE_RENDER, $script );
+    }
+
+    /**
+     * Build the shared WP context, then fold in the user-meta and custom
+     * condition values referenced by the given form's rules.
+     *
+     * The context accumulates across forms, so each successive init script
+     * carries a superset and plain assignment on the JS side stays correct.
+     */
+    private function get_wp_context( $configs ) {
         if ( $this->frontend_context === null ) {
             $wp_context = array(
                 'is_logged_in' => is_user_logged_in() ? 'true' : 'false',
@@ -160,7 +180,6 @@ class GF_Require_If extends GFAddOn {
             $this->frontend_context = $wp_context;
         }
 
-        // Collect user-meta keys needed by this form.
         foreach ( $configs as $field_config ) {
             $rules = isset( $field_config['rules'] ) ? $field_config['rules'] : array();
             foreach ( $rules as $rule ) {
@@ -170,13 +189,7 @@ class GF_Require_If extends GFAddOn {
                         $this->frontend_context['user_meta'][ $key ] = (string) get_user_meta( get_current_user_id(), $key, true );
                     }
                 }
-            }
-        }
 
-        // Collect custom condition values needed by this form.
-        foreach ( $configs as $field_config ) {
-            $rules = isset( $field_config['rules'] ) ? $field_config['rules'] : array();
-            foreach ( $rules as $rule ) {
                 if ( rgar( $rule, 'source' ) === 'custom' && ! empty( $rule['conditionKey'] ) ) {
                     $cond_key = sanitize_text_field( $rule['conditionKey'] );
                     if ( ! isset( $this->frontend_context['custom'][ $cond_key ] ) ) {
@@ -187,28 +200,7 @@ class GF_Require_If extends GFAddOn {
             }
         }
 
-        return $form;
-    }
-
-    /**
-     * Print the grfiData <script> block in wp_footer so it is available
-     * before GF fires gform_post_render.
-     */
-    public function print_frontend_data() {
-        if ( empty( $this->frontend_forms ) ) {
-            return;
-        }
-
-        $payload_forms      = wp_json_encode( $this->frontend_forms );
-        $payload_context    = wp_json_encode( $this->frontend_context );
-        $payload_indicators = wp_json_encode( ! empty( $this->frontend_indicators ) ? $this->frontend_indicators : new stdClass() );
-
-        echo '<script>'
-            . 'window.grfiData = window.grfiData || { forms: {}, wp_context: {}, indicators: {} };'
-            . 'window.grfiData.forms = Object.assign( window.grfiData.forms, ' . $payload_forms . ' );'
-            . 'window.grfiData.wp_context = ' . $payload_context . ';'
-            . 'window.grfiData.indicators = Object.assign( window.grfiData.indicators || {}, ' . $payload_indicators . ' );'
-            . '</script>' . "\n";
+        return $this->frontend_context;
     }
 
     /**

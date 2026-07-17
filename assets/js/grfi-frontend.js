@@ -4,17 +4,19 @@
  * Evaluates conditional-required rules on the client side and toggles the
  * required indicator (asterisk + aria-required) in real time.
  *
- * Data is available in `window.grfiData` (injected per-form via wp_add_inline_script):
+ * Data arrives in `window.grfiData`, set by a per-form init script registered
+ * via GFFormDisplay::add_init_script (ON_PAGE_RENDER), which then calls
+ * window.grfiRefresh( formId ):
  *   grfiData.forms[ formId ][ fieldId ] = { enabled, logicType, rules }
  *   grfiData.wp_context = { is_logged_in, user_role, user_id, page_id, url_params, user_meta, custom }
  */
 ( function( $ ) {
     'use strict';
 
-    var DEBUG = true;
-
+    // Silent by default; set `window.grfiDebug = true` before the form
+    // renders to enable console logging for support/debugging.
     function log() {
-        if ( DEBUG && window.console && console.log ) {
+        if ( window.grfiDebug && window.console && console.log ) {
             var args = Array.prototype.slice.call( arguments );
             args.unshift( '[GRFI]' );
             console.log.apply( console, args );
@@ -29,6 +31,13 @@
         evaluateAll( formId );
         bindInputListeners( formId );
     }
+
+    // Entry point called by the per-form init script (GF init pipeline) —
+    // runs on every render, including AJAX page changes.
+    window.grfiRefresh = function( formId ) {
+        log( 'grfiRefresh called, formId =', formId );
+        onFormRender( parseInt( formId, 10 ) );
+    };
 
     /* -----------------------------------------------------------------------
      * GF action hooks
@@ -374,6 +383,22 @@
             // Restore aria-required only if GF doesn't natively require the field
             if ( ! $field.hasClass( 'gfield_contains_required' ) ) {
                 $inputs.removeAttr( 'aria-required' );
+
+                // Clear stale validation errors: an empty, non-required field
+                // cannot legitimately fail validation, so any remaining error
+                // is left over from a submission made while it was required.
+                // (Non-empty fields keep their error — it could be a genuine
+                // format error, e.g. an invalid email.)
+                if ( $field.hasClass( 'gfield_error' ) ) {
+                    var value   = getFieldValue( formId, fieldId );
+                    var isEmpty = Array.isArray( value ) ? value.length === 0 : String( value ) === '';
+
+                    if ( isEmpty ) {
+                        $field.removeClass( 'gfield_error' );
+                        $field.find( '.validation_message' ).remove();
+                        $inputs.removeAttr( 'aria-invalid' );
+                    }
+                }
             }
         }
     }

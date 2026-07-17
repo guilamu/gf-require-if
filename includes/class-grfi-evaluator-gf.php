@@ -79,17 +79,30 @@ class GRFI_Evaluator_GF {
     }
 
     /**
+     * Lowercase a value the same way the frontend engine does (String().toLowerCase()),
+     * so client and server always agree on a match.
+     */
+    private static function lower( $value ) {
+        $value = (string) $value;
+        return function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
+    }
+
+    /**
      * Match when the actual value is an array (e.g. checkbox).
+     * Mirrors matchArray() in grfi-frontend.js — case-insensitive.
      */
     private static function match_array( $actual_values, $expected, $operator ) {
+        $lower = array_map( array( __CLASS__, 'lower' ), $actual_values );
+        $e     = self::lower( $expected );
+
         switch ( $operator ) {
             case 'is':
-                return in_array( $expected, $actual_values );
+                return in_array( $e, $lower, true );
             case 'isnot':
-                return ! in_array( $expected, $actual_values );
+                return ! in_array( $e, $lower, true );
             case 'contains':
-                foreach ( $actual_values as $v ) {
-                    if ( stripos( $v, $expected ) !== false ) {
+                foreach ( $lower as $v ) {
+                    if ( strpos( $v, $e ) !== false ) {
                         return true;
                     }
                 }
@@ -100,28 +113,32 @@ class GRFI_Evaluator_GF {
     }
 
     /**
-     * Fallback comparison when GFFormsModel::is_value_match() is not available.
+     * Scalar comparison. Mirrors matchValue() in grfi-frontend.js — string
+     * operators are case-insensitive on both sides.
      */
     private static function fallback_match( $actual, $expected, $operator ) {
+        $a = self::lower( $actual );
+        $e = self::lower( $expected );
+
         switch ( $operator ) {
             case 'is':
-                return (string) $actual === (string) $expected;
+                return $a === $e;
             case 'isnot':
-                return (string) $actual !== (string) $expected;
+                return $a !== $e;
             case '>':
                 return (float) $actual > (float) $expected;
             case '<':
                 return (float) $actual < (float) $expected;
             case 'contains':
-                return stripos( $actual, $expected ) !== false;
+                return strpos( $a, $e ) !== false;
             case 'starts_with':
-                return stripos( $actual, $expected ) === 0;
+                return strpos( $a, $e ) === 0;
             case 'ends_with':
-                $len = strlen( $expected );
+                $len = strlen( $e );
                 if ( $len === 0 ) {
                     return true;
                 }
-                return substr( strtolower( $actual ), -$len ) === strtolower( $expected );
+                return substr( $a, -$len ) === $e;
             default:
                 return false;
         }

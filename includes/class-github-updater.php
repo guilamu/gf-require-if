@@ -128,16 +128,12 @@ class GRFI_GitHub_Updater {
 		$result->banners      = array();
 		$result->icons        = array();
 
-		if ( $release_data && $has_update ) {
-			$package_url = self::get_package_url( $release_data );
+		// Always non-empty, even when up to date: WordPress only renders the
+		// modal footer action button (Active/Update) when download_link is set.
+		$result->download_link = self::get_plugin_info_download_link( $release_data );
 
-			if ( '' !== $package_url ) {
-				$result->download_link = $package_url;
-			}
-
-			if ( ! empty( $release_data['published_at'] ) ) {
-				$result->last_updated = $release_data['published_at'];
-			}
+		if ( $release_data && ! empty( $release_data['published_at'] ) ) {
+			$result->last_updated = $release_data['published_at'];
 		}
 
 		$result->sections = self::build_plugin_info_sections(
@@ -210,6 +206,9 @@ class GRFI_GitHub_Updater {
 		$result->external     = true;
 		$result->banners      = array();
 		$result->icons        = array();
+
+		$result->download_link = self::get_plugin_info_download_link();
+
 		$result->sections     = array(
 			'description' => '<p>' . esc_html( self::PLUGIN_DESCRIPTION ) . '</p>',
 			'changelog'   => sprintf(
@@ -296,6 +295,30 @@ class GRFI_GitHub_Updater {
 		}
 
 		return $release_data['zipball_url'] ?? '';
+	}
+
+	/**
+	 * Get a package URL suitable for the plugin details footer action button.
+	 *
+	 * WordPress only renders the plugin-information footer button when the
+	 * plugin info payload includes a non-empty download_link, even if the
+	 * plugin is already installed and active.
+	 */
+	private static function get_plugin_info_download_link( ?array $release_data = null ): string {
+		if ( is_array( $release_data ) ) {
+			$package_url = self::get_package_url( $release_data );
+
+			if ( '' !== $package_url ) {
+				return $package_url;
+			}
+		}
+
+		return sprintf(
+			'https://github.com/%s/%s/releases/latest/download/%s.zip',
+			self::GITHUB_USER,
+			self::GITHUB_REPO,
+			self::PLUGIN_SLUG
+		);
 	}
 
 	public static function check_for_update( $update, array $plugin_data, string $plugin_file, $locales ) {
@@ -387,7 +410,16 @@ class GRFI_GitHub_Updater {
 			. '.md-th > span { font-weight: 600; background: #f5f5f5; }'
 			. '</style>';
 
-		$gf_version = esc_html( self::REQUIRES_GF );
+		$requires_gf_html = sprintf(
+			'<strong>%1$s</strong> %2$s',
+			esc_html__( 'Requires Gravity Forms:', self::TEXT_DOMAIN ),
+			esc_html( sprintf(
+				/* translators: %s: minimum Gravity Forms version. */
+				__( '%s or higher', self::TEXT_DOMAIN ),
+				self::REQUIRES_GF
+			) )
+		);
+
 		echo '<script>'
 			. 'document.addEventListener("DOMContentLoaded",function(){'
 			. 'var title=document.getElementById("plugin-information-title");'
@@ -397,7 +429,7 @@ class GRFI_GitHub_Updater {
 			. 'for(var i=0;i<items.length;i++){if(items[i].textContent.indexOf("Requires PHP")!==-1){php=items[i];break;}}'
 			. 'if(!php)return;'
 			. 'var li=document.createElement("li");'
-			. 'li.innerHTML="<strong>Requires Gravity Forms:<\/strong> ' . $gf_version . ' or higher";'
+			. 'li.innerHTML=' . wp_json_encode( $requires_gf_html ) . ';'
 			. 'php.parentNode.insertBefore(li,php.nextSibling);'
 			. '});'
 			. '</script>';

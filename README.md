@@ -1,5 +1,7 @@
 # Gravity Forms Require If
 
+[![Latest Release](https://img.shields.io/github/v/release/guilamu/gf-require-if?color=blue)](https://github.com/guilamu/gf-require-if/releases) [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE) [![WordPress: 6.0+](https://img.shields.io/badge/WordPress-6.0%2B-blue.svg)](https://wordpress.org) [![PHP: 8.0+](https://img.shields.io/badge/PHP-8.0%2B-purple.svg)](https://php.net)
+
 Make the required state of supported Gravity Forms fields conditional — based on form field values, user roles, URL parameters, and more.
 
 ![Plugin Screenshot](https://github.com/guilamu/gf-require-if/blob/main/screenshot.png)
@@ -64,69 +66,78 @@ The server-side validator (`gform_pre_validation`) enforces the same rules, so c
 
 No. If a field is hidden by GF's conditional logic, its "Require If" rules are skipped entirely.
 
-### Can I add custom condition sources?
+### Can I add custom developer conditions?
 
-Yes, use the `grfi_wp_condition_sources` filter to register additional sources, and `grfi_evaluate_custom_condition` to handle evaluation:
+Yes. In the rule builder, choose the **Custom (Developer)** source and enter a condition key. Then handle that key with the `grfi_evaluate_custom_condition` filter — return the current value for your condition, and it will be compared (as a string) against the rule's value using the rule's operator:
 
 ```php
-add_filter( 'grfi_wp_condition_sources', function( $sources ) {
-    $sources['my_source'] = 'My Custom Source';
-    return $sources;
-} );
-
-add_filter( 'grfi_evaluate_custom_condition', function( $result, $rule, $form, $field ) {
-    if ( 'my_source' === $rule['source'] ) {
-        return my_custom_check( $rule );
+add_filter( 'grfi_evaluate_custom_condition', function( $result, $condition_key, $rule ) {
+    if ( 'my_condition' === $condition_key ) {
+        return my_custom_check() ? 'true' : 'false';
     }
     return $result;
-}, 10, 4 );
+}, 10, 3 );
 ```
+
+The filter runs both server-side (during validation) and at render time to feed the frontend engine, so return the same value in both cases. Returning `null` (the default) means "not handled", which evaluates as an empty string.
 
 ### Does it work with page builders?
 
-Yes. The frontend script initializes via multiple fallback methods (GF action hook, jQuery event, and DOM-ready) to ensure compatibility with Elementor, Bricks, Gutenberg, and other builders.
+Yes. The frontend script initializes via multiple fallback methods (GF init script, action hook, jQuery event, and DOM-ready) to ensure compatibility with Elementor, Bricks, Gutenberg, and other builders.
 
 ## Project Structure
 
 ```
 .
 ├── gravity-forms-require-if.php          # Main plugin file & bootstrap
-├── class-gf-require-if.php              # GFAddOn subclass (lifecycle, scripts, data injection)
+├── class-gf-require-if.php               # GFAddOn subclass (lifecycle, scripts, data injection)
 ├── uninstall.php                         # Cleanup on uninstall
 ├── README.md
 ├── assets
 │   ├── css
-│   │   ├── grfi-admin.css               # Form editor sidebar styles
-│   │   └── grfi-frontend.css            # Frontend required indicator styles
+│   │   ├── grfi-admin.css                # Form editor sidebar styles
+│   │   └── grfi-frontend.css             # Frontend required indicator styles
 │   └── js
-│       ├── grfi-admin.js                # Form editor accordion & flyout rule builder
-│       └── grfi-frontend.js             # Runtime conditional required evaluation
+│       ├── grfi-admin.js                 # Form editor accordion & flyout rule builder
+│       └── grfi-frontend.js              # Runtime conditional required evaluation
 ├── includes
-│   ├── class-grfi-evaluator-gf.php      # GF field value evaluator
-│   ├── class-grfi-evaluator-wp.php      # WordPress condition evaluator (roles, meta, etc.)
-│   ├── class-grfi-field-settings.php    # Field settings sidebar UI (PHP)
-│   ├── class-grfi-validator.php         # Server-side validation (gform_pre_validation)
-│   └── class-github-updater.php         # GitHub auto-updates
+│   ├── class-grfi-evaluator-gf.php       # GF field value evaluator
+│   ├── class-grfi-evaluator-wp.php       # WordPress condition evaluator (roles, meta, etc.)
+│   ├── class-grfi-field-settings.php     # Field settings sidebar UI (PHP)
+│   ├── class-grfi-validator.php          # Server-side validation (gform_pre_validation)
+│   ├── class-github-updater.php          # GitHub auto-updates
+│   └── Parsedown.php                     # Markdown parser for the plugin details popup
 └── languages
-    ├── gf-require-if-fr_FR.po           # French translation (source)
-    └── gf-require-if.pot                # Translation template
+    ├── gf-require-if-fr_FR.mo            # French translation (binary)
+    ├── gf-require-if-fr_FR.po            # French translation (source)
+    └── gf-require-if.pot                 # Translation template
 ```
 
 ## Changelog
 
+### 1.1.0 - 2026-07-17
+- **Improved:** Frontend payload now rides Gravity Forms' native init-script pipeline (`GFFormDisplay::add_init_script`) instead of `wp_footer` — more reliable with AJAX forms, multi-page forms, and forms rendered after the footer (popups, page-builder modals)
+- **Improved:** Stale "This field is required" errors are cleared when a field flips back to not-required (only when the field is empty, so genuine format errors are never hidden)
+- **Fixed:** Server-side rule matching is now case-insensitive, mirroring the frontend engine — client and server always agree on whether a field is required
+- **Fixed:** Translations now load correctly for self-hosted installs (`load_plugin_textdomain`)
+- **Fixed:** "View details" popup footer no longer blank when the plugin is up to date (download link is always provided)
+- **Fixed:** `grfi_evaluate_custom_condition` documentation now matches the actual filter signature; removed docs for the unimplemented `grfi_wp_condition_sources` filter
+- **Changed:** Frontend debug logging is off by default (enable with `window.grfiDebug = true`)
+- **Changed:** README restructured with badges, Security and Contributing sections, and a dated changelog
+
 ### 1.0.3
-- Hardened GitHub auto-update integration to match the WordPress GitHub auto-update reference flow
-- Added safe plugin details fallback handling, release-note injection, banner styling, and image stripping for the modal
-- Added a GitHub Actions release workflow to publish a correctly named plugin zip asset
+- **Improved:** Hardened GitHub auto-update integration to match the WordPress GitHub auto-update reference flow
+- **New:** Safe plugin details fallback handling, release-note injection, banner styling, and image stripping for the modal
+- **New:** GitHub Actions release workflow to publish a correctly named plugin zip asset
 
 ### 1.0.2
-- Ignore unsupported field types in the form editor Require If lifecycle
-- Prevent field-settings collisions with third-party fields such as Chained Selects
+- **Fixed:** Ignore unsupported field types in the form editor Require If lifecycle
+- **Fixed:** Prevent field-settings collisions with third-party fields such as Chained Selects
 
 ### 1.0.1
-- GitHub updater rewritten to use Parsedown for README.md parsing
-- Added "View details" thickbox link to plugin row meta
-- Added Gravity Forms version requirement to plugin info sidebar
+- **Improved:** GitHub updater rewritten to use Parsedown for README.md parsing
+- **New:** "View details" thickbox link in plugin row meta
+- **New:** Gravity Forms version requirement in plugin info sidebar
 
 ### 1.0.0
 - Initial release
@@ -137,12 +148,20 @@ Yes. The frontend script initializes via multiple fallback methods (GF action ho
 - Native accordion & flyout UI in the form editor
 - GitHub auto-updater
 
+## Security
+
+If you discover a security vulnerability in this plugin, please report it responsibly through [GitHub Security Advisories](https://github.com/guilamu/gf-require-if/security/advisories/new). Do not open a public issue for security reports.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/guilamu/gf-require-if).
+
+For translations, the plugin uses WordPress i18n. You can contribute translations by editing the `.po` files in the `languages/` directory and generating the corresponding `.mo` files with the `wp i18n` CLI commands.
+
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-<p align="center">
-  Made with love for the WordPress community
-</p>
+Made with love for the WordPress community
